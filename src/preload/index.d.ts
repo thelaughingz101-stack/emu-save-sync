@@ -10,12 +10,23 @@ export interface InstalledEmulator {
   resolvedSaveStatePath?: string
 }
 
+export interface ConflictFile {
+  folderPath: string
+  conflictPath: string
+  originalName: string
+  timestamp: string
+}
+
 declare global {
   interface Window {
     electron: ElectronAPI
     api: {
       detectEmulators: () => Promise<InstalledEmulator[]>
       getMyDeviceId: () => Promise<string>
+      listSyncedFolders: () => Promise<Array<{ id: string; path: string; label: string }>>
+      addSyncFolder: (folderId: string, folderPath: string, folderLabel: string) => Promise<void>
+      removeSyncFolder: (folderId: string) => Promise<void>
+      scanConflicts: () => Promise<ConflictFile[]>
     }
   }
 }

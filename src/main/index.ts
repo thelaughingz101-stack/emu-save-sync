@@ -1,3 +1,6 @@
+import { scanFolderForConflicts, type ConflictFile } from './conflicts'
+import { backupFolder } from './backup'
+import { startPlayWatcher } from './playWatcher'
 import { SyncthingClient } from './syncthing/client'
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
@@ -59,9 +62,35 @@ app.whenReady().then(() => {
     return detectInstalledEmulators()
   })
   const syncthingClient = new SyncthingClient()
+  startPlayWatcher(syncthingClient)
 
   ipcMain.handle('syncthing:getMyDeviceId', () => {
     return syncthingClient.getMyDeviceId()
+  })
+
+  ipcMain.handle('syncthing:listFolders', () => {
+    return syncthingClient.listFolders()
+  })
+
+  ipcMain.handle(
+    'syncthing:addFolder',
+    async (_event, folderId: string, folderPath: string, folderLabel: string) => {
+      backupFolder(folderPath, folderId)  // snapshot before adding
+      return syncthingClient.addFolder(folderId, folderPath, folderLabel)
+    }
+  )
+
+  ipcMain.handle('syncthing:removeFolder', (_event, folderId: string) => {
+    return syncthingClient.removeFolder(folderId)
+  })
+
+  ipcMain.handle('syncthing:scanConflicts', async () => {
+    const folders = await syncthingClient.listFolders()
+    const all: ConflictFile[] = []
+    for (const f of folders) {
+      all.push(...scanFolderForConflicts(f.path))
+    }
+    return all
   })
   createWindow()
 

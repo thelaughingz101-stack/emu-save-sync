@@ -13,7 +13,17 @@
         "linux": "~/.config/PCSX2/sstates",
         "mac": "~/Library/Application Support/PCSX2/sstates"
       },
-      "processNames": ["pcsx2.exe", "pcsx2", "pcsx2-qt", "PCSX2.AppImage"]
+      "processNames": [
+        "pcsx2.exe",
+        "pcsx2-qt.exe",
+        "pcsx2-qtx64.exe",
+        "pcsx2-qtx64-avx2.exe",
+        "pcsx2x64.exe",
+        "pcsx2x64-avx2.exe",
+        "pcsx2",
+        "pcsx2-qt",
+        "PCSX2.AppImage"
+      ]
     },
     {
       "key": "rpcs3",

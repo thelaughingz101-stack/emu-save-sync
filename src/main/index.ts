@@ -1,6 +1,8 @@
+import { SyncthingClient } from './syncthing/client'
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { detectInstalledEmulators } from './emulators/detector'
 import icon from '../../resources/icon.png?asset'
 
 function createWindow(): void {
@@ -52,6 +54,15 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
+
+  ipcMain.handle('emulators:detect', () => {
+    return detectInstalledEmulators()
+  })
+  const syncthingClient = new SyncthingClient()
+
+  ipcMain.handle('syncthing:getMyDeviceId', () => {
+    return syncthingClient.getMyDeviceId()
+  })
   createWindow()
 
   app.on('activate', function () {

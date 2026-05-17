@@ -4,14 +4,28 @@
       "key": "pcsx2",
       "displayName": "PCSX2",
       "paths": {
-        "windows": "%USERPROFILE%\\Documents\\PCSX2\\memcards",
-        "linux": "~/.config/PCSX2/memcards",
-        "mac": "~/Library/Application Support/PCSX2/memcards"
+        "windows": [
+          "%USERPROFILE%\\Documents\\PCSX2\\memcards"
+        ],
+        "linux": [
+          "~/.var/app/net.pcsx2.PCSX2/config/PCSX2/memcards",
+          "~/.config/PCSX2/memcards"
+        ],
+        "mac": [
+          "~/Library/Application Support/PCSX2/memcards"
+        ]
       },
       "saveStatePaths": {
-        "windows": "%USERPROFILE%\\Documents\\PCSX2\\sstates",
-        "linux": "~/.config/PCSX2/sstates",
-        "mac": "~/Library/Application Support/PCSX2/sstates"
+        "windows": [
+          "%USERPROFILE%\\Documents\\PCSX2\\sstates"
+        ],
+        "linux": [
+          "~/.var/app/net.pcsx2.PCSX2/config/PCSX2/sstates",
+          "~/.config/PCSX2/sstates"
+        ],
+        "mac": [
+          "~/Library/Application Support/PCSX2/sstates"
+        ]
       },
       "processNames": [
         "pcsx2.exe",
@@ -29,9 +43,16 @@
       "key": "rpcs3",
       "displayName": "RPCS3",
       "paths": {
-        "windows": "%USERPROFILE%\\RPCS3\\dev_hdd0\\home\\00000001\\savedata",
-        "linux": "~/.config/rpcs3/dev_hdd0/home/00000001/savedata",
-        "mac": "~/Library/Application Support/rpcs3/dev_hdd0/home/00000001/savedata"
+        "windows": [
+          "%USERPROFILE%\\RPCS3\\dev_hdd0\\home\\00000001\\savedata"
+        ],
+        "linux": [
+          "~/.var/app/net.rpcs3.RPCS3/config/rpcs3/dev_hdd0/home/00000001/savedata",
+          "~/.config/rpcs3/dev_hdd0/home/00000001/savedata"
+        ],
+        "mac": [
+          "~/Library/Application Support/rpcs3/dev_hdd0/home/00000001/savedata"
+        ]
       },
       "processNames": ["rpcs3.exe", "rpcs3", "rpcs3.AppImage"]
     }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect, type JSX } from 'react'
 
 interface InstalledEmulator {
   key: string
@@ -18,7 +18,6 @@ function App(): JSX.Element {
   const [loading, setLoading] = useState(true)
 
   const refresh = async (): Promise<void> => {
-    setLoading(true)
     const [emus, folders, id, conf] = await Promise.all([
       window.api.detectEmulators(),
       window.api.listSyncedFolders(),

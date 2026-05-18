@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type JSX } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import iconUrl from './assets/icon.svg'
 import pcsx2LogoUrl from './assets/pcsx2-logo.png'
 
@@ -73,6 +73,12 @@ function App(): JSX.Element {
   const [deviceError, setDeviceError] = useState<string | null>(null)
   const [deviceAdding, setDeviceAdding] = useState<boolean>(false)
 
+  // 6.3 — null = not yet checked, true = reachable, false = unreachable (show banner)
+  const [syncthingReachable, setSyncthingReachable] = useState<boolean | null>(null)
+  // Ref keeps the current value accessible inside the setInterval callback without
+  // causing the interval to be recreated on every state change.
+  const reachableRef = useRef<boolean | null>(null)
+
   const loadAll = useCallback(async () => {
     try {
       const [emuList, folderList, conflictList, deviceIdValue] = await Promise.all([
@@ -107,6 +113,24 @@ function App(): JSX.Element {
     }
   }, [])
 
+  // 6.3 — Polls Syncthing every 4 seconds. When it transitions from unreachable
+  // to reachable, triggers a full data reload so the UI catches up immediately.
+  const checkSyncthing = useCallback(async () => {
+    try {
+      await window.api.getMyDeviceId()
+      if (reachableRef.current !== true) {
+        reachableRef.current = true
+        setSyncthingReachable(true)
+        loadAll()
+      }
+    } catch {
+      if (reachableRef.current !== false) {
+        reachableRef.current = false
+        setSyncthingReachable(false)
+      }
+    }
+  }, [loadAll])
+
   useEffect(() => {
     loadAll()
     const refreshInterval = setInterval(loadAll, 30000)
@@ -121,6 +145,13 @@ function App(): JSX.Element {
   useEffect(() => {
     if (deviceId) loadDevices(deviceId)
   }, [deviceId, loadDevices])
+
+  // 6.3 — Start reachability polling immediately on mount.
+  useEffect(() => {
+    checkSyncthing()
+    const interval = setInterval(checkSyncthing, 4000)
+    return () => clearInterval(interval)
+  }, [checkSyncthing])
 
   const syncedFolderIds = useMemo(
     () => new Set(syncedFolders.map((f) => f.id)),
@@ -215,6 +246,21 @@ function App(): JSX.Element {
 
   return (
     <div className="app">
+      {/* 6.3 — Banner appears when Syncthing is confirmed unreachable.
+          null (not yet checked) shows nothing to avoid a flash on startup. */}
+      {syncthingReachable === false && (
+        <div className="syncthing-banner">
+          <span>Syncthing is not running. Save sync is paused.</span>
+          <button
+            type="button"
+            className="syncthing-banner__btn"
+            onClick={() => window.api.launchSyncthing()}
+          >
+            Launch Syncthing
+          </button>
+        </div>
+      )}
+
       <header className="app-header">
         <div className="app-header__brand">
           <img src={iconUrl} alt="" className="app-header__logo" />

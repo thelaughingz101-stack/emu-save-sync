@@ -13,6 +13,7 @@ asarUnpack:
   - resources/**
 win:
   executableName: emu-save-sync
+  icon: build/icon.ico
   target:
     - nsis
 nsis:
@@ -25,6 +26,7 @@ nsis:
 linux:
   target:
     - AppImage
+  icon: build/icon.png
   maintainer: thelaughingz101
   category: Game
   synopsis: P2P emulator save sync via Syncthing

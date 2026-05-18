@@ -30,6 +30,7 @@ declare global {
       listDevices: () => Promise<Array<{ deviceID: string; name: string }>>
       addDevice: (deviceId: string, name: string) => Promise<void | { error: string }>
       removeDevice: (deviceId: string) => Promise<void | { error: string }>
+      launchSyncthing: () => Promise<{ ok: true } | { error: string }>
     }
   }
 }

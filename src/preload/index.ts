@@ -14,7 +14,8 @@ const api = {
   addDevice: (deviceId: string, name: string) =>
     ipcRenderer.invoke('syncthing:addDevice', deviceId, name),
   removeDevice: (deviceId: string) =>
-    ipcRenderer.invoke('syncthing:removeDevice', deviceId)
+    ipcRenderer.invoke('syncthing:removeDevice', deviceId),
+  launchSyncthing: () => ipcRenderer.invoke('syncthing:launch')
 }
 
 if (process.contextIsolated) {

@@ -4,6 +4,7 @@ import { startPlayWatcher } from './playWatcher'
 import { SyncthingClient } from './syncthing/client'
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
+import { spawn } from 'child_process'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { detectInstalledEmulators } from './emulators/detector'
 import icon from '../../resources/icon.png?asset'
@@ -104,6 +105,7 @@ app.whenReady().then(() => {
   ipcMain.handle('syncthing:addDevice', async (_event, deviceId: string, name: string) => {
     try {
       await syncthingClient.addDevice(deviceId, name)
+      return
     } catch (err: any) {
       return { error: err.message }
     }
@@ -112,6 +114,27 @@ app.whenReady().then(() => {
   ipcMain.handle('syncthing:removeDevice', async (_event, deviceId: string) => {
     try {
       await syncthingClient.removeDevice(deviceId)
+      return
+    } catch (err: any) {
+      return { error: err.message }
+    }
+  })
+
+  // 6.3 — Spawn the Syncthing binary. detached+unref means it keeps running
+  // even if the Electron app closes. --no-browser stops Syncthing from opening
+  // its own web UI automatically.
+  ipcMain.handle('syncthing:launch', async () => {
+    const binaryPath =
+      process.platform === 'win32'
+        ? 'C:\\Users\\Zion\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Syncthing.Syncthing_Microsoft.Winget.Source_8wekyb3d8bbwe\\syncthing-windows-amd64-v2.1.0\\syncthing.exe'
+        : '/usr/bin/syncthing'
+    try {
+      const proc = spawn(binaryPath, ['--no-browser'], {
+        detached: true,
+        stdio: 'ignore'
+      })
+      proc.unref()
+      return { ok: true }
     } catch (err: any) {
       return { error: err.message }
     }

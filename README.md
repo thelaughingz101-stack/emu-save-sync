@@ -26,9 +26,14 @@ Emu-Save-Sync is a desktop app that automatically syncs your emulator save files
 
 ## Prerequisites
 
-**Syncthing must be installed and running before you open Emu-Save-Sync.** The app communicates with Syncthing's local API at `http://localhost:8384` — if Syncthing isn't running, the app will show a banner and offer to launch it for you, but Syncthing itself must already be installed.
+**Syncthing must be installed and running before you open Emu-Save-Sync.**
 
-Download Syncthing: https://syncthing.net/downloads/
+1. Download and install Syncthing from https://syncthing.net/downloads/
+2. Launch Syncthing — it will open a web UI at `http://localhost:8384` in your browser
+3. Leave Syncthing running in the background
+4. Open Emu-Save-Sync
+
+On Windows, Syncthing can be set to start automatically with Windows from its system tray icon — right-click the tray icon → **Start on Login**. That way you never have to launch it manually. If you forget, Emu-Save-Sync will show a banner with a Launch button.
 
 ---
 
@@ -69,3 +74,11 @@ Emu-Save-Sync talks to a locally running Syncthing instance through its REST API
 ## Credits
 
 See [CREDITS.md](CREDITS.md) for third-party attributions.
+
+---
+
+## Legal
+
+Emu-Save-Sync is an independent utility for syncing emulator save files across devices. Emu-Save-Sync is not affiliated with, endorsed by, or sponsored by the PCSX2 Project, Sony Group Corporation, Sony Computer Entertainment Inc., or any platform holder or game publisher. All product names, logos, and brands referenced are property of their respective owners.
+
+Emu-Save-Sync assumes you legally own the games and BIOS dumps you use with your emulators. This tool only syncs save files between your own devices.

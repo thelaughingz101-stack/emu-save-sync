@@ -9,7 +9,12 @@ const api = {
     ipcRenderer.invoke('syncthing:addFolder', folderId, folderPath, folderLabel),
   removeSyncFolder: (folderId: string) =>
     ipcRenderer.invoke('syncthing:removeFolder', folderId),
-  scanConflicts: () => ipcRenderer.invoke('syncthing:scanConflicts')
+  scanConflicts: () => ipcRenderer.invoke('syncthing:scanConflicts'),
+  listDevices: () => ipcRenderer.invoke('syncthing:listDevices'),
+  addDevice: (deviceId: string, name: string) =>
+    ipcRenderer.invoke('syncthing:addDevice', deviceId, name),
+  removeDevice: (deviceId: string) =>
+    ipcRenderer.invoke('syncthing:removeDevice', deviceId)
 }
 
 if (process.contextIsolated) {

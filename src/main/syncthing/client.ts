@@ -71,12 +71,22 @@ export class SyncthingClient {
     const config = await this.getConfig()
     return config.devices
   }
+
   /** Removes a folder from Syncthing's config. No-ops if the folder doesn't exist. */
   async removeFolder(folderId: string): Promise<void> {
     const config = await this.getConfig()
     const beforeLength = config.folders.length
     config.folders = config.folders.filter((f) => f.id !== folderId)
     if (config.folders.length === beforeLength) return
+    await this.putConfig(config)
+  }
+
+  /** Removes a device from Syncthing's config. No-ops if the device doesn't exist. */
+  async removeDevice(deviceId: string): Promise<void> {
+    const config = await this.getConfig()
+    const beforeLength = config.devices.length
+    config.devices = config.devices.filter((d) => d.deviceID !== deviceId)
+    if (config.devices.length === beforeLength) return
     await this.putConfig(config)
   }
 
@@ -95,6 +105,7 @@ export class SyncthingClient {
     folder.paused = false
     await this.putConfig(config)
   }
+
   // ===== Write methods =====
 
   /**

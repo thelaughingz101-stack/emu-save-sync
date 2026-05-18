@@ -57,10 +57,10 @@ app.whenReady().then(() => {
   // IPC test
   ipcMain.on('ping', () => console.log('pong'))
 
-
   ipcMain.handle('emulators:detect', () => {
     return detectInstalledEmulators()
   })
+
   const syncthingClient = new SyncthingClient()
   startPlayWatcher(syncthingClient)
 
@@ -92,6 +92,31 @@ app.whenReady().then(() => {
     }
     return all
   })
+
+  ipcMain.handle('syncthing:listDevices', async () => {
+    try {
+      return await syncthingClient.listDevices()
+    } catch (err: any) {
+      return { error: err.message }
+    }
+  })
+
+  ipcMain.handle('syncthing:addDevice', async (_event, deviceId: string, name: string) => {
+    try {
+      await syncthingClient.addDevice(deviceId, name)
+    } catch (err: any) {
+      return { error: err.message }
+    }
+  })
+
+  ipcMain.handle('syncthing:removeDevice', async (_event, deviceId: string) => {
+    try {
+      await syncthingClient.removeDevice(deviceId)
+    } catch (err: any) {
+      return { error: err.message }
+    }
+  })
+
   createWindow()
 
   app.on('activate', function () {

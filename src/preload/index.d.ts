@@ -27,6 +27,9 @@ declare global {
       addSyncFolder: (folderId: string, folderPath: string, folderLabel: string) => Promise<void>
       removeSyncFolder: (folderId: string) => Promise<void>
       scanConflicts: () => Promise<ConflictFile[]>
+      listDevices: () => Promise<Array<{ deviceID: string; name: string }>>
+      addDevice: (deviceId: string, name: string) => Promise<void | { error: string }>
+      removeDevice: (deviceId: string) => Promise<void | { error: string }>
     }
   }
 }

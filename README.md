@@ -41,7 +41,8 @@ On Windows, Syncthing can be set to start automatically with Windows from its sy
 
 | Emulator | Save Sync | Status |
 |----------|-----------|--------|
-| PCSX2 | Saves + Memory Cards | v1.0 |
+| PCSX2 | Memory Cards | v0.1.0 |
+| RPCS3 | Saves + Memory Cards | v0.2.0 |
 
 ---
 

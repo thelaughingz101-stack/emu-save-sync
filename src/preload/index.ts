@@ -15,6 +15,9 @@ const api = {
     ipcRenderer.invoke('syncthing:addDevice', deviceId, name),
   removeDevice: (deviceId: string) =>
     ipcRenderer.invoke('syncthing:removeDevice', deviceId),
+  getPendingDevices: () => ipcRenderer.invoke('syncthing:getPendingDevices'),
+  resolveConflict: (conflictPath: string, originalPath: string, keep: 'conflict' | 'original') =>
+    ipcRenderer.invoke('syncthing:resolveConflict', conflictPath, originalPath, keep),
   launchSyncthing: () => ipcRenderer.invoke('syncthing:launch')
 }
 

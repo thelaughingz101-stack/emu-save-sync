@@ -9,6 +9,13 @@ files:
   - '!{.eslintignore,.eslintrc.cjs,.eslintrc.yml,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!resources/syncthing/**'
+extraResources:
+  - from: resources/syncthing/
+    to: syncthing
+    filter:
+      - syncthing.exe
+      - syncthing
 asarUnpack:
   - resources/**
 win:

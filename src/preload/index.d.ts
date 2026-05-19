@@ -13,8 +13,19 @@ export interface InstalledEmulator {
 export interface ConflictFile {
   folderPath: string
   conflictPath: string
+  originalPath: string
   originalName: string
   timestamp: string
+  conflictSize: number
+  conflictModified: number
+  originalSize: number
+  originalModified: number
+}
+
+export interface PendingDevice {
+  deviceID: string
+  name: string
+  address: string
 }
 
 declare global {
@@ -30,6 +41,12 @@ declare global {
       listDevices: () => Promise<Array<{ deviceID: string; name: string }>>
       addDevice: (deviceId: string, name: string) => Promise<void | { error: string }>
       removeDevice: (deviceId: string) => Promise<void | { error: string }>
+      getPendingDevices: () => Promise<PendingDevice[] | { error: string }>
+      resolveConflict: (
+        conflictPath: string,
+        originalPath: string,
+        keep: 'conflict' | 'original'
+      ) => Promise<{ ok: true } | { error: string }>
       launchSyncthing: () => Promise<{ ok: true } | { error: string }>
     }
   }

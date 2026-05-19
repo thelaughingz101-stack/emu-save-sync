@@ -8,3 +8,6 @@ out
 .env
 .env.local
 .env.*.local
+# Syncthing binaries
+resources/syncthing/syncthing.exe
+resources/syncthing/syncthing

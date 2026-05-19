@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import iconUrl from './assets/icon.svg'
 import pcsx2LogoUrl from './assets/pcsx2-logo.png'
+import rpcs3LogoUrl from './assets/rpcs3-logo.png'
 
 type Emulators = Awaited<ReturnType<typeof window.api.detectEmulators>>
 type Folders = Awaited<ReturnType<typeof window.api.listSyncedFolders>>
@@ -12,8 +13,15 @@ interface PairedDevice {
   name: string
 }
 
+interface PendingDevice {
+  deviceID: string
+  name: string
+  address: string
+}
+
 const EMULATOR_LOGOS: Record<string, string> = {
-  pcsx2: pcsx2LogoUrl
+  pcsx2: pcsx2LogoUrl,
+  rpcs3: rpcs3LogoUrl
 }
 
 type StatusKind = 'synced' | 'syncing' | 'paused' | 'conflict'
@@ -44,12 +52,23 @@ function formatRelativeTime(date: Date | null): string {
   return `${days} Day${days === 1 ? '' : 's'} Ago`
 }
 
+function formatBytes(bytes: number): string {
+  if (!bytes) return 'Unknown'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
+}
+
+function formatMtime(ms: number): string {
+  if (!ms) return 'Unknown'
+  return new Date(ms).toLocaleString()
+}
+
 function truncateDeviceId(id: string): string {
   if (!id || id.length < 20) return id
   return `${id.slice(0, 7)}…${id.slice(-7)}`
 }
 
-// Syncthing device IDs are 8 groups of 7 uppercase alphanumeric characters separated by dashes.
 function isValidDeviceId(id: string): boolean {
   const parts = id.trim().split('-')
   if (parts.length !== 8) return false
@@ -66,17 +85,14 @@ function App(): JSX.Element {
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
   const [tick, setTick] = useState<number>(0)
 
-  // 6.2.B — device pairing state
   const [pairedDevices, setPairedDevices] = useState<PairedDevice[]>([])
+  const [pendingDevices, setPendingDevices] = useState<PendingDevice[]>([])
   const [deviceIdInput, setDeviceIdInput] = useState<string>('')
   const [deviceNameInput, setDeviceNameInput] = useState<string>('')
   const [deviceError, setDeviceError] = useState<string | null>(null)
   const [deviceAdding, setDeviceAdding] = useState<boolean>(false)
 
-  // 6.3 — null = not yet checked, true = reachable, false = unreachable (show banner)
   const [syncthingReachable, setSyncthingReachable] = useState<boolean | null>(null)
-  // Ref keeps the current value accessible inside the setInterval callback without
-  // causing the interval to be recreated on every state change.
   const reachableRef = useRef<boolean | null>(null)
 
   const loadAll = useCallback(async () => {
@@ -101,7 +117,6 @@ function App(): JSX.Element {
     }
   }, [])
 
-  // Fetches the device list from Syncthing and filters out this machine's own entry.
   const loadDevices = useCallback(async (ownId: string) => {
     try {
       const result = await window.api.listDevices()
@@ -109,12 +124,10 @@ function App(): JSX.Element {
       const others = (result as PairedDevice[]).filter((d) => d.deviceID !== ownId)
       setPairedDevices(others)
     } catch {
-      // non-fatal — device list failing shouldn't crash the app
+      // non-fatal
     }
   }, [])
 
-  // 6.3 — Polls Syncthing every 4 seconds. When it transitions from unreachable
-  // to reachable, triggers a full data reload so the UI catches up immediately.
   const checkSyncthing = useCallback(async () => {
     try {
       await window.api.getMyDeviceId()
@@ -141,17 +154,36 @@ function App(): JSX.Element {
     }
   }, [loadAll])
 
-  // Load paired devices once we have our own device ID to filter against.
   useEffect(() => {
     if (deviceId) loadDevices(deviceId)
   }, [deviceId, loadDevices])
 
-  // 6.3 — Start reachability polling immediately on mount.
   useEffect(() => {
     checkSyncthing()
     const interval = setInterval(checkSyncthing, 4000)
     return () => clearInterval(interval)
   }, [checkSyncthing])
+
+  useEffect(() => {
+    if (!syncthingReachable) return
+
+    const poll = async (): Promise<void> => {
+      try {
+        const result = await window.api.getPendingDevices()
+        if ('error' in result) return
+        const pairedIds = new Set(pairedDevices.map((d) => d.deviceID))
+        setPendingDevices(
+          (result as PendingDevice[]).filter((d) => !pairedIds.has(d.deviceID))
+        )
+      } catch {
+        // non-fatal
+      }
+    }
+
+    poll()
+    const interval = setInterval(poll, 5000)
+    return () => clearInterval(interval)
+  }, [syncthingReachable, pairedDevices])
 
   const syncedFolderIds = useMemo(
     () => new Set(syncedFolders.map((f) => f.id)),
@@ -219,6 +251,21 @@ function App(): JSX.Element {
     await loadDevices(deviceId)
   }, [deviceIdInput, deviceNameInput, deviceId, loadDevices])
 
+  const handleAddDiscovered = useCallback(
+    async (device: PendingDevice) => {
+      const name = device.name.trim() || 'Unknown Device'
+      setDeviceError(null)
+      const result = await window.api.addDevice(device.deviceID, name)
+      if (result && 'error' in result) {
+        setDeviceError(result.error)
+        return
+      }
+      setPendingDevices((prev) => prev.filter((d) => d.deviceID !== device.deviceID))
+      await loadDevices(deviceId)
+    },
+    [deviceId, loadDevices]
+  )
+
   const handleRemoveDevice = useCallback(
     async (id: string) => {
       const result = await window.api.removeDevice(id)
@@ -229,6 +276,24 @@ function App(): JSX.Element {
       await loadDevices(deviceId)
     },
     [deviceId, loadDevices]
+  )
+
+  // Backs up the loser and copies the winner over the original filename.
+  // Reloads everything afterward so the conflict disappears from the list.
+  const handleResolveConflict = useCallback(
+    async (conflict: Conflicts[number], keep: 'conflict' | 'original') => {
+      const result = await window.api.resolveConflict(
+        conflict.conflictPath,
+        conflict.originalPath,
+        keep
+      )
+      if (result && 'error' in result) {
+        setError(result.error)
+        return
+      }
+      await loadAll()
+    },
+    [loadAll]
   )
 
   const detectedEmulators = emulators.filter((e) => e.resolvedPath)
@@ -246,17 +311,15 @@ function App(): JSX.Element {
 
   return (
     <div className="app">
-      {/* 6.3 — Banner appears when Syncthing is confirmed unreachable.
-          null (not yet checked) shows nothing to avoid a flash on startup. */}
       {syncthingReachable === false && (
         <div className="syncthing-banner">
-          <span>Syncthing is not running. Save sync is paused.</span>
+          <span>Syncthing failed to start. Save sync is paused.</span>
           <button
             type="button"
             className="syncthing-banner__btn"
             onClick={() => window.api.launchSyncthing()}
           >
-            Launch Syncthing
+            Retry
           </button>
         </div>
       )}
@@ -264,7 +327,7 @@ function App(): JSX.Element {
       <header className="app-header">
         <div className="app-header__brand">
           <img src={iconUrl} alt="" className="app-header__logo" />
-          <h1 className="app-header__title">Emu-Save-Sync</h1>
+          <h1 className="app-header__title" style={{ marginLeft: 15, fontSize: 42 }}>Emu-Save-Sync</h1>
         </div>
         <button className="app-header__settings" type="button" disabled title="Coming soon">
           Settings
@@ -331,7 +394,7 @@ function App(): JSX.Element {
                         </div>
                         {conflictCount > 0 && (
                           <div className="emulator-card__warning">
-                            {conflictCount} conflict file{conflictCount === 1 ? '' : 's'} detected
+                            {conflictCount} conflict file{conflictCount === 1 ? '' : 's'} — see below to resolve
                           </div>
                         )}
                       </div>
@@ -388,6 +451,33 @@ function App(): JSX.Element {
               </button>
             </div>
 
+            {pendingDevices.length > 0 && (
+              <div className="info-card">
+                <div className="info-card__label">Discovered on Network</div>
+                <ul className="device-list">
+                  {pendingDevices.map((d) => (
+                    <li key={d.deviceID} className="device-list__item">
+                      <div className="device-list__info">
+                        <div className="device-list__name">
+                          {d.name || 'Unknown Device'}
+                        </div>
+                        <div className="device-list__id" title={d.deviceID}>
+                          {truncateDeviceId(d.deviceID)}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className="info-card__action"
+                        onClick={() => handleAddDiscovered(d)}
+                      >
+                        Add
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             {pairedDevices.length > 0 && (
               <ul className="device-list">
                 {pairedDevices.map((d) => (
@@ -417,6 +507,70 @@ function App(): JSX.Element {
           </div>
         </section>
       </main>
+
+      {conflicts.length > 0 && (
+        <section style={{ padding: '0 24px 24px' }}>
+          <h2 style={{ color: 'white', margin: '0 0 8px' }}>Save Conflicts</h2>
+          <p style={{ color: 'rgba(255,255,255,0.6)', margin: '0 0 16px', fontSize: 13 }}>
+            Both versions are shown below. The one you don't keep is backed up automatically before removal.
+          </p>
+          {conflicts.map((c) => {
+            const conflictBigger = c.conflictSize > c.originalSize
+            const originalBigger = c.originalSize > c.conflictSize
+            return (
+              <div key={c.conflictPath} className="info-card" style={{ marginBottom: 12 }}>
+                <div className="info-card__label" style={{ marginBottom: 12 }}>
+                  {c.originalName}
+                </div>
+                <div style={{ display: 'flex', gap: 16 }}>
+                  <div style={{ flex: 1 }}>
+                    <div className="info-card__label">Current Save</div>
+                    <div style={{ color: 'white', margin: '4px 0 2px' }}>
+                      {formatBytes(c.originalSize)}
+                      {originalBigger && (
+                        <span style={{ marginLeft: 8, color: '#4ade80', fontSize: 11, fontWeight: 700 }}>
+                          BIGGER
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 10 }}>
+                      {formatMtime(c.originalModified)}
+                    </div>
+                    <button
+                      type="button"
+                      className="info-card__action"
+                      onClick={() => handleResolveConflict(c, 'original')}
+                    >
+                      Keep This
+                    </button>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div className="info-card__label">Conflicting Save</div>
+                    <div style={{ color: 'white', margin: '4px 0 2px' }}>
+                      {formatBytes(c.conflictSize)}
+                      {conflictBigger && (
+                        <span style={{ marginLeft: 8, color: '#4ade80', fontSize: 11, fontWeight: 700 }}>
+                          BIGGER
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.6, marginBottom: 10 }}>
+                      {formatMtime(c.conflictModified)}
+                    </div>
+                    <button
+                      type="button"
+                      className="info-card__action"
+                      onClick={() => handleResolveConflict(c, 'conflict')}
+                    >
+                      Keep This
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </section>
+      )}
 
       {error && (
         <div className="error-toast" role="alert">
